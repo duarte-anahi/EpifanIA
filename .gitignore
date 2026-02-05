@@ -1,0 +1,22 @@
+--- IA y Modelos (NO SUBIR) ---
+
+*.gguf
+*.bin
+models/
+
+--- Entorno Python (NO SUBIR) ---
+
+.venv/
+pycache/
+*.pyc
+
+--- Frontend  (NO SUBIR) ---
+
+frontend/node_modules/
+frontend/dist/
+.DS_Store
+
+--- Logs y Configuración Local ---
+
+.env
+*.log
