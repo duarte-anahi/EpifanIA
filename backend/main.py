@@ -85,6 +85,7 @@ class PeticionCaliope(BaseModel):
     texto: str
     instruccion: str
     modelo: str = MODELO_OFICIAL
+    perfil: str = "estudiante"
 
 @app.post("/generar-pregunta")
 def endpoint_generar(datos: PeticionCaliope):

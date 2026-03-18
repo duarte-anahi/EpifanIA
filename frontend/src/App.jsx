@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import './index.css'
+import { SelectorPerfil } from './SelectorPerfil'
 
 // --- CONFIGURACIÓN ---
 const API_URL = "http://127.0.0.1:8000/generar-pregunta";
@@ -11,14 +12,26 @@ const MODELOS = {
 };
 
 function App() {
+  // --- ESTADOS ---
+  const [perfil, setPerfil] = useState(null)
   const [texto, setTexto] = useState('')
   const [sugerencia, setSugerencia] = useState('')
   const [cargando, setCargando] = useState(false)
   const [inputPersonalizado, setInputPersonalizado] = useState('')
   const [modeloSeleccionado, setModeloSeleccionado] = useState(MODELOS.OFICIAL)
+  const [etapa, setEtapa] = useState(null);
 
-  const pedirAyuda = async (instruccion) => {
-    if (!texto.trim()) return;
+  const pedirAyuda = async (instruccion, validacionTexto = false) => {
+    // Si la etapa requiere texto (como organizar o pulir) y está vacío, mostramos el aviso de la imagen
+    if (validacionTexto && !texto.trim()) {
+      setSugerencia("Para esta etapa necesito material. Como seleccionaste una opción de revisión o estructura, necesito que pegues tus apuntes o borrador en el editor primero.\n\nSi estás en cero, prueba el botón **'Lluvia de Ideas'**.");
+      return;
+    }
+
+    if (validacionTexto === false && !texto.trim() && instruccion !== "Genera 5 posibles ángulos o temas para arrancar en base a 3 palabras clave") {
+        return;
+    }
+
     setCargando(true);
     setSugerencia('');
 
@@ -29,7 +42,8 @@ function App() {
         body: JSON.stringify({
           texto: texto,
           instruccion: instruccion,
-          modelo: modeloSeleccionado
+          modelo: modeloSeleccionado,
+          perfil: perfil
         }),
       })
 
@@ -39,103 +53,135 @@ function App() {
 
     } catch (error) {
       console.error(error)
-      setSugerencia("⚠️ Error de conexión con el servidor.")
+      setSugerencia("⚠️ Error de conexión con el servidor local.")
     } finally {
       setCargando(false)
       setInputPersonalizado('')
     }
   }
 
+  // --- RENDERIZADO CONDICIONAL ---
+  if (!perfil) {
+    return <SelectorPerfil alSeleccionar={(p) => setPerfil(p)} />;
+  }
+
   return (
-    <div className="flex h-screen w-screen bg-gradient-to-br from-teal-100 via-cyan-50 to-blue-100 text-slate-800 overflow-hidden font-sans">
-      <div className="flex-1 flex justify-center items-center p-10">
-        <div className="w-full max-w-4xl h-full relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-teal-400 to-blue-400 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+    <div className="flex h-screen w-screen bg-[#f8fafc] text-slate-800 overflow-hidden font-sans">
+      
+      {/* HEADER SUPERIOR IZQUIERDO */}
+      <div className="absolute top-6 left-8 z-50 flex flex-col gap-1">
+        <button 
+          onClick={() => {setPerfil(null); setEtapa(null); setSugerencia('');}}
+          className="text-[10px] font-bold text-teal-600 hover:text-teal-800 uppercase tracking-widest flex items-center gap-2"
+        >
+          ← Cambiar Perfil ({perfil})
+        </button>
+        <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Tu espacio de trabajo</h2>
+      </div>
+
+      {/* ÁREA DEL EDITOR (HOJA) */}
+      <div className="flex-1 flex justify-center items-center p-20 relative">
+        <div className="w-full max-w-3xl h-[85vh] bg-white rounded-md shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-slate-100 p-12 relative">
           <textarea
-            className="relative w-full h-full bg-white/60 backdrop-blur-xl border border-white/40 rounded-xl p-8 text-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none shadow-xl transition-all placeholder-slate-500"
-            placeholder="Escribe tu historia aquí..."
+            className="w-full h-full text-lg text-slate-600 placeholder-slate-300 focus:outline-none resize-none leading-relaxed"
+            placeholder="Tu redacción comienza acá..."
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             spellCheck="false"
             autoFocus
           />
+
+          {/* CUADRO DE SUGERENCIA FLOTANTE (Estilo imagen) */}
+          {sugerencia && (
+            <div className="absolute bottom-10 right-[-50px] w-80 bg-[#fffdf0] border border-yellow-200 rounded-xl shadow-2xl p-5 animate-in fade-in slide-in-from-right-4 duration-300 z-50">
+                <button onClick={() => setSugerencia('')} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                <h4 className="text-[10px] font-bold text-yellow-800 uppercase tracking-widest mb-3">Sugerencia Epifanía</h4>
+                <div className="text-[12px] text-slate-700 leading-relaxed">
+                    <ReactMarkdown>{sugerencia}</ReactMarkdown>
+                </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <aside className="w-96 bg-white/40 backdrop-blur-2xl border-l border-white/30 p-6 flex flex-col gap-6 shadow-2xl z-10">
-        <div className="text-center border-b border-teal-100 pb-4">
-          <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600">
-            Calíope Dual
-          </div>
-          <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest">Asistente IA</p>
+      {/* BARRA LATERAL DERECHA */}
+      <aside className="w-[350px] bg-white border-l border-slate-100 p-8 flex flex-col gap-10 shadow-sm z-10">
+        <div className="text-right">
+          <h1 className="text-3xl font-bold text-cyan-800 tracking-tighter">EpifanIA</h1>
+          <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-medium">Asistente de escritura</p>
         </div>
 
+        {/* SELECTOR DE MODELO */}
         <div>
-          <label className="text-xs text-slate-600 uppercase tracking-wider mb-2 block font-semibold">Cerebro Activo:</label>
-          <select
-            className="w-full bg-white/80 border border-teal-200/50 rounded-lg p-3 text-sm text-teal-800 font-medium focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors cursor-pointer shadow-sm hover:bg-white"
+          <label className="text-[10px] text-slate-400 uppercase font-bold mb-3 block tracking-wider">Seleccionar Modelo</label>
+          <select 
+            className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm text-slate-600 focus:ring-2 focus:ring-cyan-500/20 cursor-pointer"
             value={modeloSeleccionado}
             onChange={(e) => setModeloSeleccionado(e.target.value)}
-            disabled={cargando}
           >
             <option value={MODELOS.OFICIAL}>🧠 Llama 3</option>
-            <option value={MODELOS.CREATIVO}>✨ Hermes 2</option>
+            <option value={MODELOS.CREATIVO}>✨ Hermes 3</option>
           </select>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs text-slate-600 uppercase tracking-wider mb-2 font-semibold">Pregunta Libre</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="flex-1 bg-white/80 border border-teal-200/50 rounded-lg p-3 text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors text-slate-700 shadow-sm placeholder-slate-400"
-                placeholder="Ej: Describe el olor..."
-                value={inputPersonalizado}
-                onChange={(e) => setInputPersonalizado(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && pedirAyuda(inputPersonalizado)}
-              />
-              <button
-                className="bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-teal-500/20"
-                onClick={() => pedirAyuda(inputPersonalizado)}
-                disabled={cargando}
-              >
-                ➤
-              </button>
+        {/* ETAPAS (Botones grandes de la imagen) */}
+        <div className="flex flex-col gap-3">
+          <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block tracking-wider">¿En qué etapa estás?</label>
+          
+          <button 
+            onClick={() => {setEtapa('lluvia'); pedirAyuda("Genera 5 posibles ángulos o temas para arrancar en base a 3 palabras clave", false);}}
+            className={`flex items-center gap-4 p-4 rounded-2xl transition-all border text-left ${etapa === 'lluvia' ? 'bg-cyan-50/50 border-cyan-200 shadow-sm' : 'bg-white border-slate-100 hover:border-cyan-100 hover:bg-slate-50'}`}
+          >
+            <div className="bg-yellow-100/50 p-2 rounded-lg text-xl">💡</div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-700">1. Lluvia de Ideas</h4>
+              <p className="text-[10px] text-slate-400">Hoja en blanco. ¡Ayuda!</p>
             </div>
-          </div>
+          </button>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-xs text-slate-600 uppercase tracking-wider font-semibold">Atajos</p>
-            <button className="flex items-center gap-3 w-full p-3 bg-white/60 hover:bg-teal-50 border border-white/50 hover:border-teal-200 rounded-lg transition-all text-sm text-slate-600 text-left group shadow-sm" onClick={() => pedirAyuda("Hazme una pregunta sobre la motivación del personaje.")} disabled={cargando}>
-               <span className="text-lg group-hover:scale-110 transition-transform">🎭</span> Personaje
-            </button>
-            <button className="flex items-center gap-3 w-full p-3 bg-white/60 hover:bg-teal-50 border border-white/50 hover:border-teal-200 rounded-lg transition-all text-sm text-slate-600 text-left group shadow-sm" onClick={() => pedirAyuda("Hazme una pregunta sobre el ambiente.")} disabled={cargando}>
-               <span className="text-lg group-hover:scale-110 transition-transform">🌫️</span> Atmósfera
-            </button>
-            <button className="flex items-center gap-3 w-full p-3 bg-white/60 hover:bg-teal-50 border border-white/50 hover:border-teal-200 rounded-lg transition-all text-sm text-slate-600 text-left group shadow-sm" onClick={() => pedirAyuda("Sugiere un giro inesperado.")} disabled={cargando}>
-               <span className="text-lg group-hover:scale-110 transition-transform">⚡</span> Giro de Trama
-            </button>
-          </div>
+          <button 
+            onClick={() => {setEtapa('organizar'); pedirAyuda("Analiza mis notas y propón una estructura lógica con títulos.", true);}}
+            className={`flex items-center gap-4 p-4 rounded-2xl transition-all border text-left ${etapa === 'organizar' ? 'bg-cyan-50/50 border-cyan-200 shadow-sm' : 'bg-white border-slate-100 hover:border-cyan-100 hover:bg-slate-50'}`}
+          >
+            <div className="bg-blue-100/50 p-2 rounded-lg text-xl">📝</div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-700">2. Organizar</h4>
+              <p className="text-[10px] text-slate-400">Tengo apuntes, necesito estructura.</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => {setEtapa('pulir'); pedirAyuda("Actúa como corrector de estilo y sugiere mejoras de claridad.", true);}}
+            className={`flex items-center gap-4 p-4 rounded-2xl transition-all border text-left ${etapa === 'pulir' ? 'bg-cyan-50/50 border-cyan-200 shadow-sm' : 'bg-white border-slate-100 hover:border-cyan-100 hover:bg-slate-50'}`}
+          >
+            <div className="bg-teal-100/50 p-2 rounded-lg text-xl">✨</div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-700">3. Pulir y mejorar</h4>
+              <p className="text-[10px] text-slate-400">Ya escribí, quiero revisar.</p>
+            </div>
+          </button>
         </div>
 
-        {cargando && (
-          <div className="text-center text-teal-600 animate-pulse text-sm mt-4 font-medium bg-teal-50/50 py-2 rounded-lg">
-            Pensando... <br/>
-            <span className="text-xs text-slate-400 font-normal">(Procesando en GPU local)</span>
+        {/* INPUT LIBRE AL FINAL */}
+        <div className="mt-auto">
+          <div className="relative">
+            <input
+              type="text"
+              className="w-full bg-slate-50 border-none rounded-xl p-4 pr-12 text-sm text-slate-600 focus:ring-2 focus:ring-teal-500/20 placeholder-slate-300"
+              placeholder="Pregunta libre..."
+              value={inputPersonalizado}
+              onChange={(e) => setInputPersonalizado(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && pedirAyuda(inputPersonalizado)}
+            />
+            <button 
+               onClick={() => pedirAyuda(inputPersonalizado)}
+               className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-600 hover:text-teal-800 p-2"
+            >
+              ➤
+            </button>
           </div>
-        )}
-
-        {sugerencia && !cargando && (
-          <div className="flex-1 overflow-y-auto mt-2 bg-gradient-to-b from-teal-50/80 to-blue-50/80 border border-teal-100 rounded-xl p-4 animate-in fade-in slide-in-from-bottom-4 duration-500 shadow-inner">
-            <h3 className="text-xs font-bold text-teal-700 uppercase mb-2 tracking-wider flex items-center gap-2">
-              <span>💡</span> Sugerencia:
-            </h3>
-            <div className="prose prose-sm prose-slate leading-relaxed">
-              <ReactMarkdown>{sugerencia}</ReactMarkdown>
-            </div>
-          </div>
-        )}
+          {cargando && <p className="text-[9px] text-teal-600 text-center mt-2 animate-pulse font-bold uppercase tracking-widest">IA Procesando...</p>}
+        </div>
       </aside>
     </div>
   )
