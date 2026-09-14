@@ -1,67 +1,69 @@
-EpifanIA: Asistente de Escritura Local
+# EpifanIA
 
-EpifanIA es una aplicación "Full Stack" que ejecuta Modelos de Lenguaje (LLMs) de manera local para asistir en procesos de escritura creativa y técnica.
+**English** · [Español](README.es.md)
 
-El proyecto funciona  offline y garantiza la privacidad del usuario al ejecutarse sobre hardware local, optimizado para tarjetas gráficas NVIDIA RTX 4060.
+A writing assistant that runs large language models **entirely on your own computer**. No internet connection, no API keys, and your text never leaves your machine.
 
+![EpifanIA editor](docs/editor.png)
 
+> The interface is in Spanish.
 
-Características Principales
+## Features
 
-Doble Modelo: Permite alternar entre modelos especializados en Lógica (Llama 3.1) y Creatividad (Hermes 3).
+- **Two models, two roles.** Switch between a precise *editor* (Llama 3.1, low temperature) and a creative *muse* (Hermes 3, high temperature) depending on what you need.
+- **Stage-based help.** Brainstorm from a blank page, organize notes into a structure, or polish a finished draft.
+- **Memory-aware model loading.** Only one model is kept in GPU memory at a time; switching models unloads the previous one to fit in 8 GB of VRAM.
+- **Minimal editor.** A distraction-free writing surface with suggestions shown in a floating card.
 
-Gestión de Memoria: Implementa un sistema de carga y descarga de modelos para liberar VRAM dinámicamente.
+## Tech stack
 
-Interfaz: Frontend desarrollado en React con Tailwind CSS, ofreciendo un editor minimalista.
+- **Backend:** Python, FastAPI, [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) with CUDA
+- **Frontend:** React, Vite, Tailwind CSS
+- **Models:** GGUF format, 4-bit quantization (Q4_K_M)
 
-Sin Filtros (Opcional): Soporte para modelos "Abliterated" que permiten la generación de ficción sin restricciones de contenido.
+## Project structure
 
-Stack Tecnológico
+```
+backend/
+  main.py              Model loading/unloading and generation endpoint
+frontend/
+  src/App.jsx          Editor, model selector and stage buttons
+  src/SelectorPerfil.jsx   Profile selection screen
+```
 
-Backend: Python, FastAPI, Llama-cpp-python (con soporte CUDA).
+## Running locally
 
-Frontend: React, Vite, Tailwind CSS.
+**Requirements:** an NVIDIA GPU with 8 GB of VRAM, Python 3.10+, Node.js 18+.
 
-Modelos: Formato GGUF (Cuantización de 4 bits).
+1. Install the backend:
+   ```bash
+   cd backend
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+   For GPU support, install `llama-cpp-python` with CUDA enabled — see its [installation guide](https://github.com/abetlen/llama-cpp-python#installation).
 
-Instalación
+2. Download both models into the `backend/` folder:
+   - `Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf` — [bartowski/Meta-Llama-3.1-8B-Instruct-GGUF](https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF)
+   - `Hermes-3-Llama-3.1-8B.Q4_K_M.gguf` — [NousResearch/Hermes-3-Llama-3.1-8B-GGUF](https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B-GGUF)
+     → rename it to `Hermes-3-Llama-3.1-8B-Q4_K_M.gguf` (the name `main.py` expects)
 
-1. Clonar el repositorio
+3. Start the backend:
+   ```bash
+   uvicorn main:app --reload
+   ```
 
-git clone [https://github.com/TU_USUARIO/EpifanIA.git](https://github.com/TU_USUARIO/EpifanIA.git)
-cd EpifanIA
+4. Start the frontend (in a second terminal):
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
+## Known limitations
 
-2. Configurar Backend (Motor de IA)
+- The student/teacher profile is selected in the interface but not yet used by the backend to adapt responses.
+- Requires a dedicated NVIDIA GPU; there is no CPU fallback configured.
 
-python -m venv .venv
-.venv\Scripts\activate
-pip install fastapi uvicorn pydantic llama-cpp-python huggingface_hub
-
-
-3. Descargar Modelos
-
-
-
-4. Configurar Frontend (Interfaz)
-
-cd frontend
-npm install
-
-
-Ejecución del Proyecto
-
-El sistema requiere dos terminales activas simultáneamente:
-
-Terminal 1 (Backend):
-
-uvicorn main:app --reload
-
-
-Terminal 2 (Frontend):
-
-cd frontend
-npm run dev
-
-
-Proyecto creado con fines educativos y de desarrollo local.
+![Profile selection](docs/profile.png)
